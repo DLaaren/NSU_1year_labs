@@ -62,7 +62,7 @@ void findWays (int n, int *adjMatrix, int *isVisited, unsigned *marks, int *bigW
     }
 }
 
-int findPath(int n, int *path, int *adjMatrix, unsigned *marks, int start, int end, int *bigWays) {
+int findPath (int n, int *path, int *adjMatrix, unsigned *marks, int start, int end, int *bigWays) {
     if (start == end) {
         return -3;
     }
