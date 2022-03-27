@@ -14,7 +14,7 @@ int readGraph (int n, int m, int *adjMatrix) {
             printf("bad vertex\n");
             return 0;
         }
-        if (len < 0 || len > INT_MAX) {
+        if (len < 0) {
             printf("bad length\n");
             return 0;
         }
@@ -24,14 +24,14 @@ int readGraph (int n, int m, int *adjMatrix) {
     return 1;
 }
 
-int findNextVertex (int *isVisited, unsigned *marks, int n, int start) {
+int findNextVertex (int *isVisited, unsigned *dist, int n, int start) {
     int minVertex = -1;
     if (!isVisited[start]) {
         isVisited[start]++;
         return start;
     }
     for (int k = 0; k < n; k++) {
-        if (!isVisited[k] && (minVertex == -1 || marks[k] < marks[minVertex])) {
+        if (!isVisited[k] && (minVertex == -1 || dist[k] < dist[minVertex])) {
             minVertex = k;
         }
     }
@@ -39,62 +39,36 @@ int findNextVertex (int *isVisited, unsigned *marks, int n, int start) {
     return minVertex;
 }
 
-void findWays (int n, int *adjMatrix, int *isVisited, unsigned *marks, int *bigWays, int start) {
+void findWays (int n, int *adjMatrix, int *isVisited, unsigned *dist, int *bigWays, int start, int *path) {
+    bigWays[start] = 1;
     for (int i = 0; i < n; i++) {
-        int vertex = findNextVertex(isVisited, marks, n, start);
+        int vertex = findNextVertex(isVisited, dist, n, start);
         if (start == vertex) {
-            marks[start] = 0;
+            dist[start] = 0;
         }
         for (int j = 0; j < n; j++) {
             if (adjMatrix[vertex * n + j] != 0) {
                 if (adjMatrix[vertex * n + j] == INT_MAX){
                     bigWays[j] += bigWays[vertex];
                 }
-                unsigned check = marks[vertex] + adjMatrix[vertex * n + j];
+                unsigned check = dist[vertex] + adjMatrix[vertex * n + j];
                 if (check == INT_MAX - 2 || check == INT_MAX - 1) {
                     break;
                 }
-                if (check < marks[j]) {
-                    marks[j] = check;
+                if (check < dist[j]) {
+                    dist[j] = check;
+                    path[j] = vertex;
                 }
             }
         }
     }
 }
 
-int findPath (int n, int *path, int *adjMatrix, unsigned *marks, int start, int end, int *bigWays) {
-    if (start == end) {
-        return -3;
-    }
-    unsigned weight = marks[end]; //вес вершины
-    if (weight == UINT_MAX) {
-        return -1;
-    }
-    if (weight > INT_MAX && bigWays[end] >= 2) {
-        return -2;
-    }
-    path[0] = end + 1;
-    int k = 1;
-    while (end != start) {
-        for (int i = 0; i < n; i++) {
-            if (adjMatrix[i * n + end] != 0) {
-                unsigned temp = weight - adjMatrix[i * n + end];
-                if (temp == marks[i]) {
-                    weight = temp;
-                    end = i;
-                    path[k] = i+1;
-                    k++;
-                }
-            }
-        }
-    }
-    return k;
-}
 
-void freeEverything (int *adjMatrix, int *isVisited, unsigned *marks, int *path, int *bigWays) {
+void freeEverything (int *adjMatrix, int *isVisited, unsigned *dist, int *path, int *bigWays) {
     free(adjMatrix);
     free(isVisited);
-    free(marks);
+    free(dist);
     free(path);
     free(bigWays);
 }
@@ -104,14 +78,14 @@ int main() {
     freopen("output.txt", "w", stdout);
 
     int n, m, start, end;
-    if (!scanf("%d%d%d%d", &n, &start, &end, &m)) {
+    if (scanf("%d%d%d%d", &n, &start, &end, &m) != 4) {
         return 0;
     }
     if (n < 0 || n > 5000) {
         printf("bad number of vertices\n");
         return 0;
     }
-    if (m < 0 || m > (n * ((n + 1) / 2))) {
+    if (m < 0 || m > ((n * (n-1))/2)) {
         printf("bad number of edges\n");
         return 0;
     }
@@ -127,45 +101,46 @@ int main() {
     }
 
     int *bigWays = calloc(n, sizeof(int));
-    bigWays[start-1] = 1;
     int *isVisited = calloc(n, sizeof(int));
-    unsigned *marks = calloc(n, sizeof(unsigned));
+    unsigned *dist = calloc(n, sizeof(unsigned));
+    int *path = calloc(n, sizeof(int));
     for (int i = 0; i < n; i++) {
-        marks[i] = UINT_MAX;
+        dist[i] = UINT_MAX;
     }
 
-    findWays(n, adjMatrix, isVisited, marks, bigWays, start - 1);
+    findWays(n, adjMatrix, isVisited, dist, bigWays, start - 1, path);
     for (int i = 0; i < n; i++) {
-        if (marks[i] >= (unsigned) INT_MAX + 1 && marks[i] < UINT_MAX) {
+        if (dist[i] >= (unsigned) INT_MAX + 1 && dist[i] < UINT_MAX) {
             printf("INT_MAX+ ");
         } 
-        else if (marks[i] == UINT_MAX) {
+        else if (dist[i] == UINT_MAX) {
             printf("oo ");
         }  
         else {
-            printf("%u ", marks[i]);
+            printf("%u ", dist[i]);
         }
     }
     printf("\n");
 
-    int *path = calloc(n, sizeof(int));
-    int t = findPath(n, path, adjMatrix, marks, start-1, end-1, bigWays);
-    if (t == -1) {
+    if (dist[end-1] == UINT_MAX) {
         printf("no path\n");
     }
-    else if (t == -2) {
+    else if (dist[end-1] > INT_MAX && bigWays[end-1] > 1) {
         printf("overflow\n");
     }
-    else if (t == -3) {
+    else if (start == end) {
         printf("%d\n", start);
     }
 
     else {
-        for (int i = 0; i < t; i++) {
-            printf("%d ", path[i]);
+        printf("%d ", end);
+        int p = end-1;
+        while (p != start-1) {
+            p = path[p]; 
+            printf("%d ", p+1);
         }
         printf("\n");
     }
-    freeEverything(adjMatrix, isVisited, marks, path, bigWays);
+    freeEverything(adjMatrix, isVisited, dist, path, bigWays);
     return 0;
 }
