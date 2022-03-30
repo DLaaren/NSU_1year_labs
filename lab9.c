@@ -39,8 +39,8 @@ int findNextVertex (int *isVisited, unsigned *dist, int n, int start) {
     return minVertex;
 }
 
-void findWays (int n, int *adjMatrix, int *isVisited, unsigned *dist, int *bigWays, int start, int *path) {
-    bigWays[start] = 1;
+void findWays (int n, int *adjMatrix, int *isVisited, unsigned *dist, int *countWays, int start, int *path) {
+    countWays[start] = 1;
     for (int i = 0; i < n; i++) {
         int vertex = findNextVertex(isVisited, dist, n, start);
         if (start == vertex) {
@@ -48,8 +48,11 @@ void findWays (int n, int *adjMatrix, int *isVisited, unsigned *dist, int *bigWa
         }
         for (int j = 0; j < n; j++) {
             if (adjMatrix[vertex * n + j] != 0) {
-                if (adjMatrix[vertex * n + j] == INT_MAX){
-                    bigWays[j] += bigWays[vertex];
+                if (countWays[j] == 0) {
+                    countWays[j] == countWays[vertex];
+                }
+                else {
+                    countWays[j] += countWays[vertex];
                 }
                 unsigned check = dist[vertex] + adjMatrix[vertex * n + j];
                 if (check == INT_MAX - 2 || check == INT_MAX - 1) {
@@ -65,12 +68,12 @@ void findWays (int n, int *adjMatrix, int *isVisited, unsigned *dist, int *bigWa
 }
 
 
-void freeEverything (int *adjMatrix, int *isVisited, unsigned *dist, int *path, int *bigWays) {
+void freeEverything (int *adjMatrix, int *isVisited, unsigned *dist, int *path, int *countWays) {
     free(adjMatrix);
     free(isVisited);
     free(dist);
     free(path);
-    free(bigWays);
+    free(countWays);
 }
 
 int main() {
@@ -100,7 +103,7 @@ int main() {
         return 0;
     }
 
-    int *bigWays = calloc(n, sizeof(int));
+    int *countWays = calloc(n, sizeof(int));
     int *isVisited = calloc(n, sizeof(int));
     unsigned *dist = calloc(n, sizeof(unsigned));
     int *path = calloc(n, sizeof(int));
@@ -108,7 +111,7 @@ int main() {
         dist[i] = UINT_MAX;
     }
 
-    findWays(n, adjMatrix, isVisited, dist, bigWays, start - 1, path);
+    findWays(n, adjMatrix, isVisited, dist, countWays, start - 1, path);
     for (int i = 0; i < n; i++) {
         if (dist[i] >= (unsigned) INT_MAX + 1 && dist[i] < UINT_MAX) {
             printf("INT_MAX+ ");
@@ -125,7 +128,7 @@ int main() {
     if (dist[end-1] == UINT_MAX) {
         printf("no path\n");
     }
-    else if (dist[end-1] > INT_MAX && bigWays[end-1] > 1) {
+    else if (dist[end-1] > INT_MAX && countWays[end-1] > 1) {
         printf("overflow\n");
     }
     else if (start == end) {
@@ -141,6 +144,6 @@ int main() {
         }
         printf("\n");
     }
-    freeEverything(adjMatrix, isVisited, dist, path, bigWays);
+    freeEverything(adjMatrix, isVisited, dist, path, countWays);
     return 0;
 }
