@@ -1,48 +1,54 @@
 #include <stdio.h>
-#include <limits.h>
 #include <stdlib.h>
 
 typedef struct s_Edges {
     int from, to, len;
 } Edges;
 
-typedef struct s_Graph {
-    int start, end;
-} newGraph;
-
-int readGraph (int n, int m, Edges *arr) {
+int readGraph (int n, int m, Edges *arrEdges) {
+    int from, to, len;
     for (int i = 0; i < m; i++) {
-        if (scanf("%d%d%d", &arr[i].from, &arr[i].to, &arr[i].len) != 3) {
+        if (scanf("%d%d%d", &from, &to, &len) != 3) {
             printf("bad number of lines\n");
             return 0;
         }
-        if (arr[i].from < 1 || arr[i].from > n || arr[i].to < 1 || arr[i].to > n) {
+        if (from < 1 || from > n || to < 1 || to > n) {
             printf("bad vertex\n");
             return 0;
         }
-        if (arr[i].len < 0 || arr[i].len > INT_MAX) {
+        if (len < 0) {
             printf("bad length\n");
             return 0;
         }
-
+        arrEdges[i].from = from-1;
+        arrEdges[i].to = to-1;
+        arrEdges[i].len = len;
     }
     return 1;
 }
 
-void buildGraph(int *max, int m, int *colour, Edges *arr, newGraph *graph) {
-    for (int i = 0; i < m; i++) {
-        if (colour[ arr[i].from ] != colour[ arr[i].to ]) {
-            colour[ arr[i].from ] = colour[ arr[i].to ];
-            graph[i].start = arr[i].from;
-            graph[i].end = arr[i].to;
+void makeSet (int v, int *parent) { //create set concluding only v
+    parent[v] = v;
+}
 
-            if (graph[i].start > graph[i].end && graph[i].start > (*max)) {
-                *max = graph[i].start;
-            }
-            else if (graph[i].end > graph[i].start && graph[i].end > (*max)) {
-                *max = graph[i].end;
-            }
-        }   
+int findSet (int v, int *parent) { //find set with v (find the leader)
+    if (v == parent[v]) return v;
+    return parent[v] = findSet(parent[v], parent);
+}
+
+void uniteSets (int a, int b, int *parent) { //unite two sets with a and b
+    a = findSet(a, parent);
+    b = findSet(b, parent);
+    if (a != b) parent[b] = a;
+}
+
+void KruskalAlgorithm (int m, int *frameLen, Edges *arrEdges, int *parent, int *frame) {
+    for (int i = 0; i < m; i++) {
+        if (findSet(arrEdges[i].from, parent) != findSet(arrEdges[i].to, parent)) { //if from and to from different sets
+            uniteSets(arrEdges[i].from, arrEdges[i].to, parent);
+            frame[*frameLen] = i; //the number of edge for frame
+            (*frameLen)++; 
+        }
     }
 }
 
@@ -74,41 +80,43 @@ int main() {
         printf("bad number of vertices\n");
         return 0;
     }
-    if (m < 0 || m > (n*(n+1)) / 2) {
+    if (m < 0 || m > (n*(n-1)) / 2) {
         printf("bad number of edges\n");
         return 0;
     }
-    if (n == 1 && m == 0) return 0;
-        
-    Edges *arr = calloc(m, sizeof(Edges));
-    if (!readGraph(n, m, arr)) {
-        free(arr);
+
+    Edges *arrEdges = calloc(m, sizeof(Edges));
+    if (!readGraph(n, m, arrEdges)) {
+        free(arrEdges);
         return 0;
     }
 
-    qsort(arr, m, sizeof(Edges), compare);
+    qsort(arrEdges, m, sizeof(Edges), compare);
 
-    int *colour = calloc(n, sizeof(int));
+    int *parent = calloc(n, sizeof(int));
+    int *frame = calloc(n , sizeof(int));
+    
     for (int i = 0; i < n; i++) {
-        colour[i] = i;
-    }
-    newGraph *graph = calloc(n, sizeof(newGraph));
-    int max = -1;
-    buildGraph(&max, m, colour, arr, graph);
-    if (n != max) {
+        makeSet(i, parent);
+    } 
+
+    int frameLen = 0;
+    KruskalAlgorithm(m, &frameLen, arrEdges, parent, frame);  
+    if (frameLen != n-1) {
         printf("no spanning tree\n");
-        free(arr);
-        free(colour);
-        free(graph);
+        free(arrEdges);
+        free(parent);
+        free(frame);
         return 0;
+
     }
 
-    for (int i = n-2; i >= 0; i--) {
-        printf("%d %d\n", graph[i].start, graph[i].end);
+    for (int i = 0; i < frameLen; i++) {
+        printf("%d %d\n", arrEdges[frame[i]].from + 1, arrEdges[frame[i]].to + 1);
     }
 
-    free(arr);
-    free(colour);
-    free(graph);
+    free(arrEdges);
+    free(parent);
+    free(frame);
     return 0;
 }
