@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define INF 2147483648
+#define INF 2147483648 //unsinged int
 
 int readGraph (int n, int m, unsigned *adjMatrix) {
     int from, to, len;
@@ -24,13 +24,13 @@ int readGraph (int n, int m, unsigned *adjMatrix) {
     return 1;
 }
 
-int PrimaAlgorithm (int n, unsigned *adjMatrix, int *ansStack) {
+int MinimumSpanningTree (int n, unsigned *adjMatrix, int *ansStack) {
     int last_ansStack = 0;
     int *used = calloc(n, sizeof(int)); //is included in frame or not
     unsigned *minEdge = calloc(n, sizeof(unsigned)); //the shortest possible vertex from vertex i
     int *endEdge = calloc(n, sizeof(int)); //the end of the edge from vertex i
     for (int i = 0; i < n; i++) {
-        minEdge[i] = INF; //all vertexes are far away from the begin
+        minEdge[i] = INF; //all vertices are far away from the begin
         endEdge[i] = -1;  
     }
     minEdge[0] = 0;
@@ -39,7 +39,7 @@ int PrimaAlgorithm (int n, unsigned *adjMatrix, int *ansStack) {
         int v = -1;
         for (int j = 0; j < n; j++) {
             if (!used[j] && (v == -1 || minEdge[j] < minEdge[v])) v = j;
-        } //searching the closest vertex from the vertex i 
+        } //searching the closest unused vertex from the vertex i 
         if (minEdge[v] == INF) { //if there is no one
             free(used);
             free(minEdge);
