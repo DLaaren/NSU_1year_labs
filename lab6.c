@@ -7,24 +7,18 @@ typedef struct Node {
     struct Node *left, *right;
 } Node;
 
-static Node *allocator;
-
-void initAllocator (int n) {
-    allocator = malloc(n * sizeof(Node));
+Node *initAllocator (int n) {
+    Node *allocator = malloc (n * sizeof(Node));
+    return allocator;
 }
 
-Node *nodeAllocator () {
+Node *nodeAllocator (Node *allocator) {
     static int block = 0;
     return &allocator[block++];
 }
 
-void freeAllocator () {
-    free(allocator);
-}
-
-
-Node *createNode (int key) {
-    Node *root = nodeAllocator();
+Node *createNode (int key, Node *allocator) {
+    Node *root = nodeAllocator(allocator);
     
     root->key = key;
     root->left = NULL;
@@ -79,7 +73,6 @@ int balanceFactor (Node *node) {
 }
 
 Node *balance (Node *node) {
-    updateHeight(node);
     if (balanceFactor(node) == 2) { //левое поддерево намного ниже правого
         if (balanceFactor(node->left) < 0) {
             node->left = leftRotation(node->left);
@@ -95,52 +88,40 @@ Node *balance (Node *node) {
     return node; //если балансировка не нужна
 }
 
-Node *insert (Node *node, int key) {
+Node *insert (Node *node, int key, Node *allocator) {
     if (!node) { 
-        return createNode(key);
+        return createNode(key, allocator);
     }
     else if (key <= node->key) {
-        node->left = insert(node->left, key);
+        node->left = insert(node->left, key, allocator);
     }
     else {
-        node->right = insert(node->right, key);
+        node->right = insert(node->right, key, allocator);
     }
-    return balance(node); //прежде чем вставить новый узел - его нужно сбалансировать
-}
-
-void freeAVL () {
-    freeAllocator ();
-}
-
-void printfAVL (Node *root) {
-    if (root) {
-        printfAVL(root->left);
-        printf("%d ", root->key);
-        printfAVL(root->right);
-    }
+    updateHeight(node);
+    return balance(node);
 }
 
 int main () {
-    freopen("input.txt", "r", stdin); 
-    freopen("output.txt", "w", stdout);
+    // freopen("input.txt", "r", stdin); 
+    // freopen("output.txt", "w", stdout);
 
     int n;
     if (!scanf("%d", &n)) return 0;
 
-    initAllocator(n); // выделили блок память под N узлов
+    Node *allocator = initAllocator(n); // выделили блок память под N узлов
 
     Node *root = NULL;
     for (int i = 0; i < n; i++) {
         int key;
         if (!scanf("%d", &key)) {
-            freeAVL();
+            free(allocator);
             return 0;
         }
-        root = insert(root, key);
+        root = insert(root, key, allocator);
     }
-    //printfAVL(root);
-    //printf("\n");
+
     printf("%d\n", findHeight(root));
-    freeAVL();
+    free(allocator);
     return 0; 
 }
