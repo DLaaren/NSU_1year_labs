@@ -1,0 +1,243 @@
+`timescale 1ns / 1ps
+
+module traffic_lights_control (red_v, yellow_v, green_v, red_h, yellow_h, green_h, clk, reset, night_mode);
+output reg red_v, yellow_v, green_v;
+output reg red_h, yellow_h, green_h;
+input clk, reset, night_mode;
+
+parameter [2:0] red = 4;
+parameter [2:0] yellow1 = 2; //after red
+parameter [2:0] yellow2 = 3; //after green
+parameter [2:0] green = 1;
+parameter [2:0] light_off = 0; //after night_mode
+parameter [2:0] blinking_green1 = 5; //blinking green
+parameter [2:0] blinking_green2 = 6;
+
+reg [2:0] state;
+
+reg [23:0] count;
+reg [4:0] seconds;
+
+always @(posedge clk)
+    begin
+        
+        if (count >= 1) //12000000) //the value has changed for testbench
+            begin
+                seconds = seconds + 1;
+                count = 0;
+            end
+        
+        if (~reset) //press the button to start or reset
+            begin
+                state = red;
+                count = 0;
+                seconds = 0;
+            end
+
+        if (night_mode) //turn the switch on for night mode
+            begin
+                if (seconds % 2 == 0)
+                    begin
+                        state = yellow2;
+                    end
+                else    
+                    begin
+                        state = light_off;
+                    end 
+                count = count + 1;          
+            end
+
+        if (~night_mode)
+            begin
+
+                case (state)
+                
+                    red :
+                        begin 
+                            if (seconds > 23)
+                            begin
+                                if (seconds % 2 == 0)
+                                    begin
+                                        state = blinking_green2;
+                                    end
+                                else    
+                                    begin
+                                        state = red;
+                                    end 
+                                count = count + 1;
+                                
+                                if (seconds == 30)
+                                    begin
+                                        state = yellow1;
+                                        count = 0;
+                                        seconds = 0;
+                                    end
+                            end
+                            
+                            else 
+                                begin
+                                    state = red;
+                                    count = count + 1;
+                                end
+                        end
+
+                    yellow1 :
+                        begin
+                            if (seconds == 5)
+                                begin
+                                    state = green;
+                                    count = 0;
+                                    seconds = 0;
+                                end
+                            else 
+                                begin
+                                    state = yellow1;
+                                    count = count + 1;
+                                end
+                        end
+
+                    green :
+                        begin
+                                
+                            if (seconds > 23)
+                            begin
+                                if (seconds % 2 == 0)
+                                    begin
+                                        state = blinking_green1;
+                                    end
+                                else    
+                                    begin
+                                        state = green;
+                                    end 
+                                count = count + 1;
+                                
+                                if (seconds == 30)
+                                    begin
+                                        state = yellow2;
+                                        count = 0;
+                                        seconds = 0;
+                                    end
+                            end
+                                
+                            else
+                                begin
+                                    state = green;
+                                    count = count + 1;
+                                end
+
+                        end
+
+                    yellow2 :
+                        begin
+                            if (seconds == 5)
+                                begin
+                                    state = red;
+                                    count = 0;
+                                    seconds = 0;
+                                end
+                            else 
+                                begin
+                                    state = yellow2;
+                                    count = count + 1;
+                                end
+                        end
+                        
+                    light_off :
+                        begin
+                            state = red;
+                            count = 0;
+                            seconds = 0;
+                        end
+                        
+                    blinking_green1 :
+                        begin
+                            state = green;                     
+                        end             
+                
+                    blinking_green2 :
+                        begin
+                            state = red;
+                        end
+                
+                    endcase  
+            end
+    end
+    
+always @(state) 
+    begin
+        case (state)
+
+            red:
+                begin
+                    red_v = 1; // 0' red is on
+                    red_h = 0; // 90' red is off
+                    green_v = 0; // 0' green is off
+                    green_h = 1; // 90' green is on
+                    yellow_v = 0; // 0' yellow is off
+                    yellow_h = 0; // 90' yellow is off
+                end
+            
+            yellow1:
+                begin
+                    red_v = 0; // 0' red is off
+                    red_h = 0; // 90' red is off
+                    green_v = 0; // 0' green is off
+                    green_h = 0; // 90' green is off
+                    yellow_v = 1;// 0' yellow is on
+                    yellow_h = 1; // 90' yellow is on
+                end
+
+            green:
+                begin
+                    red_v = 0; // 0' red is off
+                    red_h = 1; // 90' red is on
+                    green_v = 1; // 0' green is on
+                    green_h = 0; // 90' green is off
+                    yellow_v = 0; // 0' yellow is off
+                    yellow_h = 0; // 90' yellow is off
+                end
+
+            yellow2:
+                begin
+                    red_v = 0; // 0' red is off
+                    red_h = 0; // 90' red is off
+                    green_v = 0; // 0' green is off
+                    green_h = 0; // 90' green is off
+                    yellow_v = 1; // 0' yellow is on
+                    yellow_h = 1; // 90' yellow is on
+                end
+                
+            light_off:
+                begin
+                    red_v = 0;
+                    red_h = 0;
+                    green_v = 0;
+                    green_h = 0;
+                    yellow_v = 0;
+                    yellow_h = 0;
+                end
+                
+            blinking_green1:
+                begin
+                    red_v = 0;
+                    red_h = 1;
+                    green_v = 0;
+                    green_h = 0;
+                    yellow_v = 0;
+                    yellow_h = 0;
+                end
+
+            blinking_green2:
+                begin
+                    red_v = 1;
+                    red_h = 0;
+                    green_v = 0;
+                    green_h = 0;
+                    yellow_v = 0;
+                    yellow_h = 0;
+                end
+
+        endcase
+    end
+
+endmodule 
